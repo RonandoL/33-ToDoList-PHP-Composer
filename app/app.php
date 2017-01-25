@@ -3,58 +3,65 @@
     require_once __DIR__."/../vendor/autoload.php";
     require_once __DIR__."/../src/tasks.php";
 
+    session_start();
+    if (empty($_SESSION['list_of_tasks'])) {
+        $_SESSION['list_of_tasks'] = array();
+    }
+
     $app = new Silex\Application();
+                                        // Thought Process:
+    $app->get("/", function() {         // 1. Create route
+                                        // 2. Need two variabes:
+      $output = "";                       // 2a. Need $output variable to build on
+      $all_tasks = Task::getAll();        // 2b. Need all Tasks variable to hold all the Task objects
 
-    $app->get("/", function() {
-        return
-        "<!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset='utf-8'>
-            <title>Job Posting Board</title>
-            <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css'>
-          </head>
+      if (!empty($all_tasks)) {         // 3. IF all Tasks variable has tasks, then add HTML to $output
+          $output .= "
+              <h1>To Do List</h1>
+              <p>Here are all your tasks</p>
+          ";
+          foreach ($all_tasks as $task) {  // 5. Iterate through array of tasks,
+            $output .= "<p>" . $task->getDescription() . "</p>";  // 6. Get task Description, add to $output & print
+          }
+      }
+                                          // 7. If no tasks in array, then print home page content
+      $output .= "
+          <h1>Your To Do List</h1>
+          <form action='/tasks' method='post'>
+            <label for='description'>Add your task: </label>
+            <input type='text' id='description' name='description'>
+            <button type='submit'>Add Task</button>
+          </form>
+      ";
+                                          // 8. Add a Form with delete button that goes to home page
+      $output .= "
+          <form action='/' method='post'>
+            <button type='submit'>Delete All Tasks</button>
+          </form>
+      ";
 
-          <body>
-            <div class='container'>
-              <h1>Job Posting Board</h1>
-              <div class='row'>
-                <div class='col-md-4'>
-                <form action='jobs'>
-                  <div class='form-group'>
-                    <label for='job'>Enter Job Title</label>
-                    <input type='text' name='job' id='job' class='form-control' placeholder='Personal Slave'>
-                  </div>
-                  <div class='form-group'>
-                    <label for='description'>Enter Job Description</label>
-                    <textarea name='description' id='description' rows='6' placeholder='Involves cleaning toilets and picking p after noisy brats.' class='form-control'></textarea>
-                  </div>
-                  <hr>
+      return $output;
 
-                  <h3>Enter Contact Info</h3>
-                  <div class='form-group'>
-                    <label for='contact_name'>Enter Contact Name</label>
-                    <input name='contact_name' id='contact_name' class='form-control' placeholder='John Doe'>
-                  </div>
-                  <div class='form-group'>
-                    <label for='contact_phone'>Enter Contact Phone</label>
-                    <input type='tel' name='contact_phone' id='contact_phone' class='form-control' placeholder='1234567890'>
-                    <small class='form-text text-muted'>10 digits please, no dashes</small>
-                  </div>
-                  <div class='form-group'>
-                    <label for='contact_email'>Enter Contact Email</label>
-                    <input type='email' name='contact_email' id='contact_email' class='form-control' placeholder='john.doe@gmail.com'>
-                    <small class='form-text text-muted'>We'll never share your email with anyone else.</small>
-                  </div>
+    });
 
-                  <button type='submit' class='btn btn-lg btn-danger'>Submit Job</button>
+    $app->post("/tasks", function() {              // 9. Create Route to where new tasks go to '/tasks'
+        $task = new Task($_POST['description']);   // 10. On results Route, Instantiate new Task object
+        $save = $task->save();                     // 11. Save new Task in a variable to be displayed
+                                                   // 12. Return task description using Getter
+        return "
+          <h1>Your Newly Added Task</h1>
+          <p>" . $task->getDescription() . "</p>
+          <p><a href='/'>View your list of things to do.</a></p>
+        ";                                        // 13. Add link to home page to see full list of tasks
+    });
 
-                </form>
-                </div>
-              </div>
-            </div>
-          </body>
-        </html>";
+    $app->post('/', function() {                  // 14. New Route to Delete all tasks from array
+      Task::deleteAll();                          // 15. Use deleteAll() method on Class itself
+
+      return "
+          <h1>List Cleared</h1>
+          <p><a href='/'>Home</a></p>
+      ";                                          // 16. Add text telling user all clear, & link to home page
     });
 
     return $app;
